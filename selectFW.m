@@ -14,6 +14,8 @@ switch param.model
     case 'ScalarSSM'
         fw = ScalarSSM(param);
     %add your own class
+    case 'RigidLid'
+        fw = RigidLid(param);
     otherwise
         error('foward model does not exist');
 end
