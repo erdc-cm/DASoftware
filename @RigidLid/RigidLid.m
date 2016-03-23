@@ -35,7 +35,7 @@ classdef RigidLid < handle
         n = [];     % number of observation
         H = [];     % measurement equation, fixed in time
         F = [];     % state transition equation, change with time
-        xt_var = 20; % true state variance
+        xt_var = 1; % true state variance
         obsvar = 1; % true observation variance
         loc = [];   % m x nd matrix, location coordinates of each state variable
         method = ''; % algorithm name
@@ -46,6 +46,7 @@ classdef RigidLid < handle
         nxc = 100;   % number of grid cells 
         Qb  = 5.0*0.5;   % inflow discharge per unit width, m^2/sec
         h0  = 5.0;       % background depth
+        hb  = 1.0;       % height of bump
         dx  = [];    % cell width
         obs_x = [];  % location of the observations
         obs_dof = []; % indices of the observations
@@ -75,10 +76,27 @@ classdef RigidLid < handle
             obj.H = getH(obj,0);
             % Initialize state structure
             rng(100)
-            obj.xt = obj.getx();
+            obj.xt = obj.getxt();%obj.getx();
         end
         
         function [xnew,z] = simulate(obj,x)
+            % 1-step simulation
+            % for generating true process
+            % compute true state x
+            xt_tmp = obj.getxt();
+            Fmtx = obj.getF(xt_tmp);
+            xnew.vec = xt_tmp.vec;
+            xnew.t = x.t + 1;
+            % compute true observation z
+            Hmtx = obj.H;
+            noise = sqrt(obj.obsvar)*randn(size(obj.n,1));
+            z.noisefree = Hmtx*xnew.vec;
+            z.vec = z.noisefree + noise; % todo: add noise
+            obj.F = Fmtx;
+            obj.xt = xnew;
+            obj.zt = z;
+        end
+        function [xnew,z] = simulate_orig(obj,x)
             % 1-step simulation
             % for generating true process
             % compute true state x
@@ -126,10 +144,12 @@ classdef RigidLid < handle
             Q0 = common.getQ(obj.loc,obj.kernel);
             [A,C,~] = svd(Q0);
             x.vec = zeros(obj.m,1);
-            x.vec(1:obj.nxc) = obj.h0*ones(obj.nxc,1) + A*sqrt(C)*randn(obj.nxc,1);
+            x.vec(1:obj.nxc) = obj.h0*ones(obj.nxc,1);% + A*sqrt(C)*randn(obj.nxc,1);
             % TODO actually initialize with F(x)?
-            x.vec(obj.nxc+1:obj.m) = A*sqrt(C)*randn(obj.nxc,1);
+            %x.vec(obj.nxc+1:obj.m) = A*sqrt(C)*randn(obj.nxc,1);
             x.t = 0;
+            Fmtx = obj.getF(x);
+            x.vec = Fmtx*x.vec;
         end
         
         function visualize(obj,fw_list,da_list)
@@ -166,10 +186,20 @@ classdef RigidLid < handle
                  xc,da.x.vec(1:obj.nxc) - 1.96*sqrt(pvar(1:obj.nxc)),'g')
             hold on;
             xi = obj.obs_dof;
-            plot(xi,fw.xt.vec(xi),'*')
+            plot(obj.obs_x,fw.xt.vec(xi),'*')
             legend('True','Estimated','95% interval');
         end
         
+        function xt = getxt(obj)
+            % return true profile for bathymetry and the
+            % corresponding velocity field
+            xt.vec = zeros(obj.m,1);
+            ht = obj.h0 - obj.hb*exp((-3.0*(obj.loc(:,1)-0.5* ...
+                                            obj.Lx).^2)./(obj.ell*obj.ell));
+            vt = obj.Qb./ht;
+            xt.vec(1:obj.nxc)=ht; xt.vec(obj.nxc+1:obj.m)=vt;
+            xt.t=0.;
+        end
     end
     
     methods(Access = public)
@@ -183,7 +213,7 @@ classdef RigidLid < handle
             idx_hh = sub2ind(size(F), depth_ind,depth_ind);
             F(idx_hh) = 1.0;
             idx_vh = sub2ind(size(F), vel_ind,depth_ind); 
-            F(idx_vh) = obj.Qb./max(input.vec(depth_ind),1.0e-8);
+            F(idx_vh) = obj.Qb./max(input.vec(depth_ind).^2,1.0e-8);
 
         end
         
@@ -197,7 +227,7 @@ classdef RigidLid < handle
             % H is fixed in time
             Hmtx = zeros(obj.n,obj.m);
             idx = sub2ind(size(Hmtx), I, J);
-            Hmtx(I,J) = 1;
+            Hmtx(idx) = 1;
             H = Hmtx;
         end
         
