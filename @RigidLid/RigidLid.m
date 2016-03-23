@@ -131,9 +131,9 @@ classdef RigidLid < handle
                 error('x is not the right size');
             else
                 % update state x and transition matrix F
-                Fmtx = obj.getF(x);
-                x.vec = Fmtx*x.vec;
+                x.vec(obj.nxc+1:obj.m)=obj.Qb./max(x.vec(1:obj.nxc),1.0e-8);
                 x.t = x.t + 1;
+                obj.F = obj.getF(x)
             end
         end
         
@@ -145,11 +145,8 @@ classdef RigidLid < handle
             [A,C,~] = svd(Q0);
             x.vec = zeros(obj.m,1);
             x.vec(1:obj.nxc) = obj.h0*ones(obj.nxc,1);% + A*sqrt(C)*randn(obj.nxc,1);
-            % TODO actually initialize with F(x)?
-            %x.vec(obj.nxc+1:obj.m) = A*sqrt(C)*randn(obj.nxc,1);
-            x.t = 0;
-            Fmtx = obj.getF(x);
-            x.vec = Fmtx*x.vec;
+            x.t=-1.;
+            obj.f(x);
         end
         
         function visualize(obj,fw_list,da_list)
@@ -213,7 +210,7 @@ classdef RigidLid < handle
             idx_hh = sub2ind(size(F), depth_ind,depth_ind);
             F(idx_hh) = 1.0;
             idx_vh = sub2ind(size(F), vel_ind,depth_ind); 
-            F(idx_vh) = obj.Qb./max(input.vec(depth_ind).^2,1.0e-8);
+            F(idx_vh) = -obj.Qb./max(input.vec(depth_ind).^2,1.0e-8);
 
         end
         
