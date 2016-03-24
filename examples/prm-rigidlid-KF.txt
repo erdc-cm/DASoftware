@@ -3,8 +3,8 @@ model           RigidLid
 m               200
 n               40
 nt              10
-x_std           0
-obsstd          1.0
+x_std           1.
+obsstd          1.0e-2
 cov_type        gaussian
 cov_power       1
 cov_len         50
