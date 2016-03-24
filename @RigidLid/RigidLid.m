@@ -35,7 +35,7 @@ classdef RigidLid < handle
         n = [];     % number of observation
         H = [];     % measurement equation, fixed in time
         F = [];     % state transition equation, change with time
-        xt_var = 1; % true state variance
+        xt_var = [1.e0 1.e0]; % true state variance [h v]
         obsvar = 1; % true observation variance
         loc = [];   % m x nd matrix, location coordinates of each state variable
         method = ''; % algorithm name
@@ -61,7 +61,10 @@ classdef RigidLid < handle
             obj.m = floor(param.m/2)*2;
             obj.nxc= floor(obj.m/2)
             obj.n = param.n;
-            obj.xt_var = param.x_std;
+            %mwf need to change definition of x_std in
+            %get_prmstruct to actually read
+            %obj.xt_var(1) = param.x_std(1);
+            %obj.xt_var(2) = param.x_std(2);
             obj.obsvar = param.obsstd;
             obj.tspan = 9;
             obj.method = param.method;
@@ -151,6 +154,7 @@ classdef RigidLid < handle
         
         function visualize(obj,fw_list,da_list)
             % Plot initial condition
+            nt = size(da_list,1);
             figure;
             subplot(2,1,1)
             obj.plotstate(da_list{1},fw_list{1})
@@ -160,7 +164,7 @@ classdef RigidLid < handle
             % PLOT NEEDS TO BECOME EITHER A FUNCTION OR A CLASS
             subplot(2,1,2)
             obj.plotstate(da_list{end},fw_list{end})
-            title([obj.method,' mean and STD at step 10']);
+            title([obj.method,' mean and STD at',sprintf('step %d ',nt-1)]);
             
         end
         

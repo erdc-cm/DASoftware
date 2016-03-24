@@ -11,19 +11,28 @@ if isprop(kf,'P')
         kf.P = zeros(kf.m,kf.m);
         depth_ind = [1:1:obj.nxc]; vel_ind = [obj.nxc+1:1:obj.m];
         %%hh
-	kf.P(1:obj.nxc,1:obj.nxc) = common.getQ(obj.loc, ...
-                                                obj.kernel);
+	kf.P(1:obj.nxc,1:obj.nxc) = obj.xt_var(1)*common.getQ(obj.loc, ...
+                                                          obj.kernel);
         %%hv
-	kf.P(1:obj.nxc,obj.nxc+1:obj.m) = common.getQ(obj.loc,obj.kernel);
+	kf.P(1:obj.nxc,obj.nxc+1:obj.m) = -sqrt(obj.xt_var(1))*sqrt(obj.xt_var(2))*common.getQ(obj.loc,obj.kernel);
         %%vh
-	kf.P(obj.nxc+1:obj.m,1:obj.nxc) = common.getQ(obj.loc, ...
-                                                      obj.kernel);
+	kf.P(obj.nxc+1:obj.m,1:obj.nxc) = kf.P(1:obj.nxc,obj.nxc+1:obj.m);
         %%vv 
-        kf.P(obj.nxc+1:obj.m,obj.nxc+1:obj.m) = common.getQ(obj.loc,obj.kernel);
+        kf.P(obj.nxc+1:obj.m,obj.nxc+1:obj.m) = obj.xt_var(2)*common.getQ(obj.loc,obj.kernel);
 end
 
 if isprop(kf,'Q')
 	kf.Q = zeros(kf.m,kf.m);
+        depth_ind = [1:1:obj.nxc]; vel_ind = [obj.nxc+1:1:obj.m];
+        %%hh
+	kf.Q(1:obj.nxc,1:obj.nxc) = obj.xt_var(1)*common.getQ(obj.loc, ...
+                                                          obj.kernel);
+        %%hv
+	kf.Q(1:obj.nxc,obj.nxc+1:obj.m) = -sqrt(obj.xt_var(1))*sqrt(obj.xt_var(2))*common.getQ(obj.loc,obj.kernel);
+        %%vh
+	kf.Q(obj.nxc+1:obj.m,1:obj.nxc) = kf.Q(1:obj.nxc,obj.nxc+1:obj.m);
+        %%vv 
+        kf.Q(obj.nxc+1:obj.m,obj.nxc+1:obj.m) = obj.xt_var(2)*common.getQ(obj.loc,obj.kernel);
 end
 
 if isprop(kf,'R')
@@ -39,7 +48,9 @@ if isprop(kf,'K')
 end
 
 if isprop(kf,'variance')
-	kf.variance = obj.xt_var*ones(kf.m,1);% TODO: change to VarOfState
+	kf.variance = obj.xt_var(1)*ones(kf.m,1);% TODO: change to
+                                                 % VarOfState
+        kf.variance(obj.nxc+1:obj.m)=obj.xt_var(2);
 end
 
 if isprop(kf,'x')

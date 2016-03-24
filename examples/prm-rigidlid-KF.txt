@@ -5,6 +5,8 @@ n               40
 nt              10
 x_std           1.
 obsstd          1.0e-2
+theta_Q         1.0e0
+theta_R         1.0e0
 cov_type        gaussian
 cov_power       1
 cov_len         50
